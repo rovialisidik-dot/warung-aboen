@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: warung_aboen_app
+    restart: always
+    ports:
+      - "80:80"
+    environment:
+      APP_NAME: "Warung Aboen"
+      APP_ENV: production
+      APP_KEY: base64:eZlZ7b3Z1jE4r+W0OaW819J3c/kL9OaU9Lz1m4N8v2U=
+      APP_DEBUG: "false"
+      APP_URL: "http://localhost"
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: warung_aboen
+      DB_USERNAME: warung_user
+      DB_PASSWORD: warung_secret_password
+      RUN_MIGRATIONS: "true"
+    depends_on:
+      - db
+    volumes:
+      - storage_data:/var/www/html/storage
+
+  db:
+    image: mysql:8.0
+    container_name: warung_aboen_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: warung_aboen
+      MYSQL_USER: warung_user
+      MYSQL_PASSWORD: warung_secret_password
+      MYSQL_ROOT_PASSWORD: root_secret_password
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database_production_warung_aboen.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+volumes:
+  db_data:
+  storage_data:
