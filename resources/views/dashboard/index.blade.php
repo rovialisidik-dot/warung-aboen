@@ -62,52 +62,6 @@
     </div>
     @endif
 
-    <!-- Multi-Device Connection & HP Access Bar -->
-    <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-card flex flex-col lg:flex-row items-center justify-between gap-5 relative overflow-hidden">
-        <div class="flex items-start sm:items-center space-x-4">
-            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 text-xl font-bold shadow-sm border border-emerald-100">
-                <i class="fa-solid fa-mobile-screen-button"></i>
-            </div>
-            <div>
-                <div class="flex items-center space-x-2">
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 uppercase tracking-wider">Akses Multi-Device</span>
-                    <span class="text-xs text-slate-400">&bull; HP, Tablet & Laptop Lain</span>
-                </div>
-                <h3 class="font-black text-sm sm:text-base text-slate-900 mt-0.5">Bisa Digunakan di HP dan Laptop Lain</h3>
-                <p class="text-xs text-slate-500 mt-0.5">
-                    Hubungkan HP ke Wi-Fi yang sama, lalu buka link di bawah ini di browser HP:
-                </p>
-                <div class="mt-2.5 flex flex-wrap items-center gap-2" x-data="{ copied: false }">
-                    <code class="px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-mono font-bold text-emerald-700 select-all">
-                        {{ app_mobile_url() }}
-                    </code>
-                    <button type="button" @click="navigator.clipboard.writeText('{{ app_mobile_url() }}'); copied = true; setTimeout(() => copied = false, 2500)"
-                            class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center space-x-1.5 shadow-sm">
-                        <i :class="copied ? 'fa-solid fa-check text-emerald-400' : 'fa-regular fa-copy'"></i>
-                        <span x-text="copied ? 'Tersalin!' : 'Salin Link HP'"></span>
-                    </button>
-                    <a href="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={{ urlencode(app_mobile_url()) }}" target="_blank"
-                       class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold transition-colors flex items-center space-x-1.5">
-                        <i class="fa-solid fa-qrcode"></i>
-                        <span>Lihat QR Code HP</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick PWA Tip Box with QR code -->
-        <div class="w-full lg:w-auto p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 flex items-center space-x-3 shrink-0">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data={{ urlencode(app_mobile_url()) }}"
-                 alt="Scan QR HP"
-                 class="w-16 h-16 rounded-xl border border-slate-300 bg-white p-1 shrink-0 shadow-xs">
-            <div class="space-y-0.5">
-                <span class="font-extrabold text-slate-800 block text-[11px]">Scan QR di HP Anda</span>
-                <p class="text-[10px] text-slate-500 leading-tight">Arahkan kamera HP ke kode QR ini untuk buka.</p>
-                <span class="inline-block text-[10px] text-emerald-700 font-bold">Menu ⋮ &rarr; Tambahkan ke Layar Utama (PWA)</span>
-            </div>
-        </div>
-    </div>
-
     <!-- 6 Executive KPI Metric Cards Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         
