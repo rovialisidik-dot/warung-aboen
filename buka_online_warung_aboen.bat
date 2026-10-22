@@ -1,42 +1,48 @@
 @echo off
-title Akses Online Warung Aboen (Internet Dari Mana Saja)
+title Warung Aboen Enterprise - Akses Online Dari Mana Saja
 color 0B
 
 echo =======================================================
-echo        AKSES ONLINE WARUNG ABOEN (DARI LUAR JARINGAN)
-echo        BISA DIBUKA DI HP VIA INTERNET / PAKET DATA
+echo        SERVER ONLINE WARUNG ABOEN (INTERNET OTOMATIS)
+echo      BISA DIBUKA DI HP, TABLET, DAN LAPTOP DARI MANA SAJA
 echo =======================================================
 echo.
 
-echo 1. Memeriksa status server lokal...
-tasklist /FI "IMAGENAME eq php.exe" 2>NUL | find /I /N "php.exe">NUL
+set PATH=C:\laragon\bin\php\php-8.1.10-Win32-vs16-x64;C:\laragon\bin\composer;C:\laragon\bin\mysql\mysql-8.0.30-winx64\bin;%PATH%
+
+echo 1. Memeriksa Database MySQL...
+tasklist /FI "IMAGENAME eq mysqld.exe" 2>NUL | find /I /N "mysqld.exe">NUL
 if "%ERRORLEVEL%"=="1" (
-    echo    Server belum menyala! Silakan jalankan 'start_warung_aboen.bat' terlebih dahulu.
-    echo.
-    pause
-    exit /b
+    echo    Mengaktifkan MySQL di latar belakang...
+    start "" /B "C:\laragon\bin\mysql\mysql-8.0.30-winx64\bin\mysqld.exe" --defaults-file="C:\laragon\bin\mysql\mysql-8.0.30-winx64\my.ini" --console
+    timeout /t 3 /nobreak >nul
+) else (
+    echo    [OK] MySQL Database aktif.
 )
 
-echo 2. Menghubungkan ke jaringan publik online yang aman...
+echo 2. Memeriksa Server Aplikasi (Laravel)...
+tasklist /FI "IMAGENAME eq php.exe" 2>NUL | find /I /N "php.exe">NUL
+if "%ERRORLEVEL%"=="1" (
+    echo    Mengaktifkan Server Laravel di latar belakang...
+    start "" /B php artisan serve --host=0.0.0.0 --port=8000
+    timeout /t 3 /nobreak >nul
+) else (
+    echo    [OK] Server Laravel aktif.
+)
+
+echo.
+echo =======================================================
+echo  MENGHUBUNGKAN KE INTERNET PUBLIK VIA CLOUDFLARE...
+echo.
+echo  Tautan HTTPS online akan muncul di bawah ini.
+echo  Buka link tersebut di HP atau Laptop dari mana saja!
+echo  (PENTING: Jangan tutup jendela ini selama aplikasi dipakai)
+echo =======================================================
 echo.
 
 if exist "%~dp0cloudflared.exe" (
-    echo    Menggunakan Cloudflare Tunnel (Akses Cepat & Gratis)...
-    echo.
-    echo =======================================================
-    echo  PERHATIKAN TULISAN TAUTAN URL HTTPS DI BAWAH INI:
-    echo  (Salin tautan https://...trycloudflare.com ke HP Anda)
-    echo =======================================================
-    echo.
     "%~dp0cloudflared.exe" tunnel --url http://127.0.0.1:8000
 ) else (
-    echo    Menggunakan Localtunnel via npx...
-    echo.
-    echo =======================================================
-    echo  PERHATIKAN TULISAN 'your url is: https://...'
-    echo  (Buka alamat tersebut di HP atau laptop mana saja)
-    echo =======================================================
-    echo.
     npx localtunnel --port 8000
 )
 
