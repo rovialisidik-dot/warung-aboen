@@ -292,10 +292,10 @@
                     </a>
                     @endif
 
-                    <!-- PWA Quick Install / Petunjuk HP -->
+                    <!-- PWA Quick Install / Petunjuk HP & Laptop -->
                     <button @click="triggerPwaInstall()" type="button" class="w-full flex items-center space-x-3 px-3 py-2 rounded-xl font-bold transition-all text-emerald-400 hover:bg-emerald-950/60 hover:text-emerald-300 group text-left">
                         <i class="fa-solid fa-mobile-screen-button w-4 text-center text-sm group-hover:scale-110 transition-transform"></i>
-                        <span>Pasang di HP (PWA)</span>
+                        <span>Pasang Aplikasi (HP & Laptop)</span>
                     </button>
 
                 </nav>
@@ -521,6 +521,75 @@
         </div>
     </div>
 
+    <!-- PWA Install Guide Modal (Untuk HP & Laptop) -->
+    <div x-show="showInstallModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 text-slate-800 border border-slate-100 animate-scale-up" @click.away="showInstallModal = false">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg font-bold">
+                        <i class="fa-solid fa-mobile-screen-button"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-base text-slate-900">Pasang Aplikasi Warung Aboen</h3>
+                        <p class="text-xs text-slate-500">Bisa dibuka langsung seperti aplikasi HP & Desktop</p>
+                    </div>
+                </div>
+                <button @click="showInstallModal = false" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3.5 text-xs">
+                <!-- Android Guide -->
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                    <div class="flex items-center space-x-2 text-emerald-700 font-bold">
+                        <i class="fa-brands fa-android text-base"></i>
+                        <span class="text-xs">Di HP Android (Chrome / Browser Bawaan)</span>
+                    </div>
+                    <ol class="list-decimal list-inside space-y-1 text-slate-600 pl-1 leading-relaxed">
+                        <li>Buka link aplikasi di browser Chrome HP Anda.</li>
+                        <li>Ketuk menu titik tiga (<strong>⋮</strong>) di pojok kanan atas browser.</li>
+                        <li>Pilih <strong>"Instal aplikasi"</strong> atau <strong>"Tambahkan ke Layar Utama" (Add to Home screen)</strong>.</li>
+                        <li>Ikon <strong>Warung Aboen</strong> akan langsung muncul di layar HP layaknya aplikasi Play Store!</li>
+                    </ol>
+                </div>
+
+                <!-- iPhone Guide -->
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                    <div class="flex items-center space-x-2 text-slate-800 font-bold">
+                        <i class="fa-brands fa-apple text-base"></i>
+                        <span class="text-xs">Di HP iPhone / iPad (Safari)</span>
+                    </div>
+                    <ol class="list-decimal list-inside space-y-1 text-slate-600 pl-1 leading-relaxed">
+                        <li>Buka aplikasi menggunakan browser <strong>Safari</strong>.</li>
+                        <li>Ketuk tombol <strong>Bagikan (Share / <i class="fa-solid fa-arrow-up-from-bracket"></i>)</strong> di bagian bawah layar.</li>
+                        <li>Gulir ke bawah dan ketuk <strong>"Tambah ke Layar Utama" (Add to Home Screen)</strong>.</li>
+                        <li>Aplikasi siap dibuka layar penuh tanpa bilah browser!</li>
+                    </ol>
+                </div>
+
+                <!-- Laptop Guide -->
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                    <div class="flex items-center space-x-2 text-indigo-700 font-bold">
+                        <i class="fa-solid fa-laptop text-base"></i>
+                        <span class="text-xs">Di Laptop / Komputer (Google Chrome / Microsoft Edge)</span>
+                    </div>
+                    <ol class="list-decimal list-inside space-y-1 text-slate-600 pl-1 leading-relaxed">
+                        <li>Ketuk ikon <strong>Instal (<i class="fa-solid fa-download"></i>)</strong> di sebelah kanan bilah alamat (URL bar) browser.</li>
+                        <li>Atau ketuk menu (<strong>⋮</strong>) &rarr; Simpan dan Bagikan &rarr; <strong>"Instal Warung Aboen"</strong>.</li>
+                        <li>Aplikasi akan berjalan di jendela tersendiri seperti software kasir desktop modern!</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="mt-5 pt-3 border-t border-slate-100 flex justify-end">
+                <button type="button" @click="showInstallModal = false" class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors">
+                    Saya Mengerti
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Live clock script -->
     <script>
         // PWA Service Worker Registration
@@ -551,6 +620,7 @@
                 sidebarOpen: false,
                 quickSearchOpen: false,
                 searchKeyword: '',
+                showInstallModal: false,
                 triggerPwaInstall() {
                     if (deferredPrompt) {
                         deferredPrompt.prompt();
@@ -558,7 +628,7 @@
                             deferredPrompt = null;
                         });
                     } else {
-                        alert("📲 CARA MEMASANG APLIKASI DI HP (ANDROID / IPHONE):\n\n1. Buka browser Chrome / Safari di HP Anda.\n2. Buka alamat Warung Aboen (misal: http://192.168.1.116:8000).\n3. Ketuk menu titik tiga (⋮) atau tombol Share.\n4. Pilih 'Tambahkan ke Layar Utama' (Add to Home Screen).\n5. Selesai! Aplikasi langsung terpasang di HP Anda tanpa unduh file APK manual.");
+                        this.showInstallModal = true;
                     }
                 }
             }

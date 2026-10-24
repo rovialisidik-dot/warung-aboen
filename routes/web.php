@@ -30,6 +30,7 @@ Route::middleware('auth')->group(function () {
     // Point of Sale (Kasir)
     Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
     Route::post('/pos/checkout', [PosController::class, 'checkout'])->name('pos.checkout');
+    Route::post('/pos/sync-offline', [PosController::class, 'syncOfflineSales'])->name('pos.sync_offline');
     Route::get('/pos/receipt/{sale}', [PosController::class, 'receipt'])->name('pos.receipt');
 
     // Sales History

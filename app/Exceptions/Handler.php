@@ -26,5 +26,16 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+
+        $this->renderable(function (\Illuminate\Session\TokenMismatchException $e, $request) {
+            if ($request->expectsJson() || $request->is('pos/*') || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sesi login telah kedaluwarsa. Silakan muat ulang (refresh) halaman.',
+                    'csrf_error' => true
+                ], 419);
+            }
+            return redirect()->route('login')->with('error', 'Sesi Anda telah kedaluwarsa demi keamanan. Silakan masuk kembali.');
+        });
     }
 }

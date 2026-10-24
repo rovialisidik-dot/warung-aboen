@@ -171,6 +171,122 @@ class PosController extends Controller
         }
     }
 
+    public function syncOfflineSales(Request $request)
+    {
+        $salesData = $request->input('sales', []);
+        if (empty($salesData)) {
+            return response()->json(['success' => true, 'synced_count' => 0]);
+        }
+
+        $syncedCount = 0;
+        $errors = [];
+
+        foreach ($salesData as $singleSale) {
+            try {
+                DB::transaction(function () use ($singleSale) {
+                    $discount = (float) ($singleSale['discount'] ?? 0);
+                    $paymentAmount = (float) ($singleSale['payment_amount'] ?? 0);
+                    $customerName = !empty($singleSale['customer_name']) ? $singleSale['customer_name'] : 'Pelanggan Umum';
+
+                    $subtotal = 0;
+                    $totalCost = 0;
+                    $itemsData = [];
+
+                    foreach ($singleSale['items'] as $itemInput) {
+                        $product = Product::find($itemInput['product_id']);
+                        if (!$product) continue;
+
+                        $qty = (int) $itemInput['quantity'];
+                        $itemSubtotal = $product->selling_price * $qty;
+                        $itemCost = $product->purchase_price * $qty;
+                        $itemProfit = $itemSubtotal - $itemCost;
+
+                        $subtotal += $itemSubtotal;
+                        $totalCost += $itemCost;
+
+                        $itemsData[] = [
+                            'product' => $product,
+                            'product_name' => $product->name,
+                            'unit' => $product->unit,
+                            'unit_cost' => $product->purchase_price,
+                            'unit_price' => $product->selling_price,
+                            'quantity' => $qty,
+                            'subtotal' => $itemSubtotal,
+                            'profit' => $itemProfit,
+                        ];
+                    }
+
+                    $totalAmount = max(0, $subtotal - $discount);
+                    $changeAmount = max(0, $paymentAmount - $totalAmount);
+                    $grossProfit = $totalAmount - $totalCost;
+
+                    $invoiceNumber = $singleSale['offline_invoice'] ?? ('ABN-OFF-' . date('YmdHis') . '-' . rand(100, 999));
+                    if (Sale::where('invoice_number', $invoiceNumber)->exists()) {
+                        return;
+                    }
+
+                    $sale = Sale::create([
+                        'invoice_number' => $invoiceNumber,
+                        'user_id' => auth()->id() ?? 1,
+                        'customer_name' => $customerName,
+                        'subtotal' => $subtotal,
+                        'discount' => $discount,
+                        'total_amount' => $totalAmount,
+                        'total_cost' => $totalCost,
+                        'gross_profit' => $grossProfit,
+                        'payment_method' => $singleSale['payment_method'] ?? 'cash',
+                        'payment_amount' => $paymentAmount,
+                        'change_amount' => $changeAmount,
+                        'status' => 'completed',
+                        'notes' => 'Disinkronkan dari Kasir Offline HP (' . ($singleSale['created_at'] ?? now()) . ')',
+                        'created_at' => $singleSale['created_at'] ?? now(),
+                    ]);
+
+                    foreach ($itemsData as $item) {
+                        SaleItem::create([
+                            'sale_id' => $sale->id,
+                            'product_id' => $item['product']->id,
+                            'product_name' => $item['product_name'],
+                            'unit' => $item['unit'],
+                            'unit_cost' => $item['unit_cost'],
+                            'unit_price' => $item['unit_price'],
+                            'quantity' => $item['quantity'],
+                            'subtotal' => $item['subtotal'],
+                            'profit' => $item['profit'],
+                        ]);
+
+                        StockMovement::recordMovement(
+                            $item['product'],
+                            $item['quantity'],
+                            'out',
+                            'sale',
+                            $sale->id,
+                            'Penjualan Kasir Offline HP ' . $sale->invoice_number
+                        );
+                    }
+
+                    CashTransaction::record(
+                        'in',
+                        'sale',
+                        $totalAmount,
+                        "Penjualan Kasir Offline HP {$sale->invoice_number} ({$sale->customer_name})",
+                        $sale->id,
+                        auth()->id() ?? 1
+                    );
+                });
+                $syncedCount++;
+            } catch (Exception $ex) {
+                $errors[] = $ex->getMessage();
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'synced_count' => $syncedCount,
+            'errors' => $errors
+        ]);
+    }
+
     public function receipt(Sale $sale)
     {
         $sale->load(['items', 'user']);

@@ -7,6 +7,35 @@
 @section('content')
 <div x-data="posEnterpriseApp()" class="flex flex-col min-h-[calc(100vh-180px)] xl:h-[calc(100vh-140px)]">
 
+    <!-- Online / Offline Status & Sync Bar -->
+    <div class="flex items-center justify-between flex-wrap gap-2 mb-3 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-200/80 shadow-xs text-xs">
+        <div class="flex items-center space-x-2">
+            <template x-if="isOnline">
+                <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Server Terhubung (Online)</span>
+                </span>
+            </template>
+            <template x-if="!isOnline">
+                <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-amber-50 text-amber-700 font-bold border border-amber-200">
+                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                    <span>Mode Kasir Offline (Tersimpan di HP/Laptop)</span>
+                </span>
+            </template>
+            <span class="text-slate-400 hidden sm:inline">&bull; Transaksi kasir tetap lancar meski laptop mati</span>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <template x-if="offlineQueue.length > 0">
+                <button type="button" @click="syncOfflineQueue()" :disabled="isSyncing"
+                        class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold shadow-sm flex items-center space-x-1.5 transition-all text-xs">
+                    <i class="fa-solid fa-arrows-rotate" :class="isSyncing ? 'animate-spin' : ''"></i>
+                    <span>Sinkronkan <strong x-text="offlineQueue.length"></strong> Transaksi Offline</span>
+                </button>
+            </template>
+        </div>
+    </div>
+
     <!-- Mobile Segment Switcher (HP / Smartphone Mode) -->
     <div class="xl:hidden flex items-center p-1 bg-slate-200/90 rounded-2xl mb-4 text-xs font-bold no-print">
         <button type="button" @click="mobileTab = 'catalog'"
@@ -77,14 +106,6 @@
                     @endforeach
                 </div>
             </div>
-                <button type="button" @click="selectedCategory = '{{ $cat->id }}'"
-                        :class="selectedCategory == '{{ $cat->id }}' ? 'bg-slate-900 text-white font-black shadow-sm' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 font-semibold'"
-                        class="px-3.5 py-1.5 rounded-xl transition-all shrink-0">
-                    {{ $cat->name }} ({{ $cat->products_count }})
-                </button>
-                @endforeach
-            </div>
-        </div>
 
         <!-- Product Cards Grid -->
         <div class="flex-1 overflow-y-auto p-4">
@@ -385,6 +406,11 @@
                         <span>Pelanggan:</span>
                         <span x-text="lastSale?.customer_name"></span>
                     </div>
+                    <template x-if="lastSale?.is_offline">
+                        <div class="mt-2 py-1 px-2 rounded-lg bg-amber-50 text-amber-800 text-[11px] font-bold text-center border border-amber-200">
+                            ⚡ Mode Offline (Tersimpan di Memori HP/Laptop)
+                        </div>
+                    </template>
                 </div>
             </div>
 
@@ -485,8 +511,46 @@ function posEnterpriseApp() {
         cameraScannerOpen: false,
         isCameraActive: false,
         html5QrScanner: null,
+        isOnline: navigator.onLine,
+        offlineQueue: [],
+        isSyncing: false,
 
         init() {
+            // Load & save offline catalog to HP/laptop local storage
+            if (this.products && this.products.length > 0) {
+                try {
+                    localStorage.setItem('warung_aboen_offline_products', JSON.stringify(this.products));
+                } catch(e) {}
+            } else {
+                const cached = localStorage.getItem('warung_aboen_offline_products');
+                if (cached) {
+                    try { this.products = JSON.parse(cached); } catch(e) {}
+                }
+            }
+
+            // Load offline sales queue
+            try {
+                this.offlineQueue = JSON.parse(localStorage.getItem('warung_aboen_offline_queue') || '[]');
+            } catch(e) {
+                this.offlineQueue = [];
+            }
+
+            // Connectivity event listeners
+            window.addEventListener('online', () => {
+                this.isOnline = true;
+                if (this.offlineQueue.length > 0) {
+                    setTimeout(() => this.syncOfflineQueue(true), 1500);
+                }
+            });
+            window.addEventListener('offline', () => {
+                this.isOnline = false;
+            });
+
+            // Auto sync if queue has items and online
+            if (this.isOnline && this.offlineQueue.length > 0) {
+                setTimeout(() => this.syncOfflineQueue(true), 2500);
+            }
+
             // Hotkey F9 for checkout
             window.addEventListener('keydown', (e) => {
                 if (e.key === 'F9') {
@@ -496,6 +560,12 @@ function posEnterpriseApp() {
                     }
                 }
             });
+        },
+
+        updateOfflineCatalogCache() {
+            try {
+                localStorage.setItem('warung_aboen_offline_products', JSON.stringify(this.products));
+            } catch(e) {}
         },
 
         get filteredProducts() {
@@ -639,16 +709,35 @@ function posEnterpriseApp() {
                 discount: this.discount || 0,
             };
 
+            // If offline, process directly in local HP/laptop storage
+            if (!this.isOnline) {
+                this.processOfflineCheckout(payload);
+                return;
+            }
+
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 6000);
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
                 const response = await fetch("{{ route('pos.checkout') }}", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'X-CSRF-TOKEN': csrfToken,
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
+
+                // If session expired (419) or server error, gracefully save offline
+                if (response.status === 419 || response.status >= 500) {
+                    console.warn('Server error/session code: ' + response.status + '. Fallback to offline checkout.');
+                    this.processOfflineCheckout(payload, 'Sesi server kedaluwarsa / laptop belum siap. Transaksi disimpan aman di Kasir Offline HP/Laptop!');
+                    return;
+                }
 
                 const data = await response.json();
 
@@ -663,6 +752,7 @@ function posEnterpriseApp() {
                         const p = this.products.find(p => p.id === cartItem.product_id);
                         if (p) p.stock -= cartItem.quantity;
                     });
+                    this.updateOfflineCatalogCache();
 
                     // Reset cart
                     this.cart = [];
@@ -670,20 +760,124 @@ function posEnterpriseApp() {
                     this.discount = 0;
                     this.paymentAmount = 0;
                 } else {
-                    alert('Gagal: ' + (data.message || 'Terjadi kesalahan saat memproses pembayaran.'));
+                    if (confirm('Server merespons: ' + (data.message || 'Error') + '.\nApakah ingin menyimpan transaksi ini di memori Kasir Offline HP/Laptop?')) {
+                        this.processOfflineCheckout(payload);
+                    }
                 }
             } catch (err) {
-                alert('Terjadi kesalahan jaringan atau server: ' + err.message);
+                console.warn('Jaringan atau server tidak terjangkau:', err);
+                this.processOfflineCheckout(payload, 'Laptop tidak terhubung. Transaksi kasir otomatis disimpan di HP (Mode Offline)!');
             } finally {
                 this.isSubmitting = false;
             }
         },
 
+        processOfflineCheckout(payload, notice = null) {
+            const invoiceNum = 'ABN-OFF-' + new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14) + '-' + Math.floor(Math.random() * 900 + 100);
+            
+            const offlineSale = {
+                id: 'off_' + Date.now(),
+                invoice_number: invoiceNum,
+                offline_invoice: invoiceNum,
+                customer_name: this.customerName || 'Pelanggan Umum',
+                subtotal: this.cartSubtotal(),
+                discount: this.discount || 0,
+                total_amount: this.grandTotal(),
+                payment_method: this.paymentMethod,
+                payment_amount: this.paymentAmount,
+                change_amount: this.changeAmount(),
+                created_at: new Date().toISOString(),
+                is_offline: true,
+                items: this.cart.map(c => ({
+                    id: 'it_' + c.product_id + '_' + Date.now(),
+                    product_id: c.product_id,
+                    product_name: c.name,
+                    quantity: c.quantity,
+                    unit_price: c.price,
+                    subtotal: c.price * c.quantity
+                }))
+            };
+
+            // Deduct stock locally
+            this.cart.forEach(cartItem => {
+                const p = this.products.find(p => p.id === cartItem.product_id);
+                if (p) p.stock -= cartItem.quantity;
+            });
+            this.updateOfflineCatalogCache();
+
+            // Store in queue
+            this.offlineQueue.push(offlineSale);
+            try {
+                localStorage.setItem('warung_aboen_offline_queue', JSON.stringify(this.offlineQueue));
+            } catch(e) {}
+
+            this.lastSale = offlineSale;
+            this.showReceiptModal = true;
+            playCashierBeep(1200, 0.15);
+
+            // Reset cart
+            this.cart = [];
+            this.customerName = 'Pelanggan Umum';
+            this.discount = 0;
+            this.paymentAmount = 0;
+            this.isSubmitting = false;
+
+            if (notice) {
+                alert('⚡ ' + notice);
+            }
+        },
+
+        async syncOfflineQueue(isAuto = false) {
+            if (this.offlineQueue.length === 0 || this.isSyncing) return;
+            this.isSyncing = true;
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+                const response = await fetch("{{ route('pos.sync_offline') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ sales: this.offlineQueue })
+                });
+
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    const count = data.synced_count;
+                    this.offlineQueue = [];
+                    localStorage.removeItem('warung_aboen_offline_queue');
+                    if (!isAuto) {
+                        alert('✅ Berhasil! ' + count + ' transaksi kasir offline dari HP/Laptop telah disinkronkan ke pembukuan utama.');
+                    }
+                } else {
+                    if (!isAuto) {
+                        alert('Gagal sinkronisasi: ' + (data.message || 'Server belum siap.'));
+                    }
+                }
+            } catch (err) {
+                if (!isAuto) {
+                    alert('Tidak dapat terhubung ke server laptop: ' + err.message + '\nPastikan server laptop sedang aktif untuk sinkronisasi.');
+                }
+            } finally {
+                this.isSyncing = false;
+            }
+        },
+
         printReceipt() {
             if (!this.lastSale) return;
+            if (this.lastSale.is_offline) {
+                window.print();
+                return;
+            }
             const url = "{{ url('/pos/receipt') }}/" + this.lastSale.id;
             const printWindow = window.open(url, '_blank', 'width=400,height=600');
-            printWindow.focus();
+            if (printWindow) {
+                printWindow.focus();
+            } else {
+                window.print();
+            }
         },
 
         // Camera Barcode Scanner for HP / Mobile
