@@ -22,6 +22,7 @@ Route::middleware('guest')->group(function () {
 
 // Point of Sale Sync Offline API (Bisa dipanggil oleh HP offline saat terhubung)
 Route::post('/pos/sync-offline', [PosController::class, 'syncOfflineSales'])->name('pos.sync_offline');
+Route::get('/pos/catalog-json', [PosController::class, 'catalogJson'])->name('pos.catalog_json');
 
 // Authenticated Application Routes
 Route::middleware('auth')->group(function () {

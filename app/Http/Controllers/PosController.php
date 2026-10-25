@@ -193,10 +193,19 @@ class PosController extends Controller
                     $itemsData = [];
 
                     foreach ($singleSale['items'] as $itemInput) {
-                        $product = Product::find($itemInput['product_id']);
+                        $product = null;
+                        if (!empty($itemInput['product_id'])) {
+                            $product = Product::find($itemInput['product_id']);
+                        }
+                        if (!$product && !empty($itemInput['barcode'])) {
+                            $product = Product::where('barcode', $itemInput['barcode'])->first();
+                        }
+                        if (!$product && !empty($itemInput['name'])) {
+                            $product = Product::where('name', $itemInput['name'])->first();
+                        }
                         if (!$product) continue;
 
-                        $qty = (int) $itemInput['quantity'];
+                        $qty = (int) ($itemInput['quantity'] ?? $itemInput['qty'] ?? 1);
                         $itemSubtotal = $product->selling_price * $qty;
                         $itemCost = $product->purchase_price * $qty;
                         $itemProfit = $itemSubtotal - $itemCost;
@@ -291,5 +300,36 @@ class PosController extends Controller
     {
         $sale->load(['items', 'user']);
         return view('pos.receipt', compact('sale'));
+    }
+
+    public function catalogJson()
+    {
+        $categories = Category::select('id', 'name', 'slug')->get();
+        $products = Product::where('is_active', true)
+            ->with('category:id,name,slug')
+            ->select('id', 'category_id', 'barcode', 'name', 'unit', 'purchase_price', 'selling_price', 'stock', 'min_stock')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'id' => $p->id,
+                    'cat' => $p->category->slug ?? 'sembako',
+                    'barcode' => $p->barcode,
+                    'name' => $p->name,
+                    'unit' => $p->unit,
+                    'cost' => (float) $p->purchase_price,
+                    'price' => (float) $p->selling_price,
+                    'stock' => (int) $p->stock,
+                    'min' => (int) $p->min_stock,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'categories' => $categories,
+            'products' => $products,
+            'total' => $products->count(),
+            'synced_at' => now()->toIso8601String()
+        ]);
     }
 }

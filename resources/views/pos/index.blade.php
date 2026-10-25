@@ -32,6 +32,12 @@
                 <i class="fa-solid fa-mobile-screen-button"></i>
                 <span>Buka Kasir HP Offline</span>
             </a>
+            <button type="button" @click="showImportModal = true"
+                    class="px-2.5 py-1 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 font-bold border border-teal-300 flex items-center space-x-1.5 transition-all text-xs"
+                    title="Impor transaksi yang direkam di HP saat offline">
+                <i class="fa-solid fa-file-import"></i>
+                <span>Impor Data dari HP</span>
+            </button>
             <template x-if="offlineQueue.length > 0">
                 <button type="button" @click="syncOfflineQueue()" :disabled="isSyncing"
                         class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold shadow-sm flex items-center space-x-1.5 transition-all text-xs">
@@ -475,6 +481,45 @@
                     Tutup
                 </button>
             </div>
+    <!-- Import Modal from HP Offline -->
+    <div x-show="showImportModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 text-slate-800 space-y-4" @click.away="showImportModal = false">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-extrabold text-base text-slate-900 flex items-center space-x-2">
+                    <i class="fa-solid fa-file-import text-teal-600"></i>
+                    <span>Impor Transaksi Penjualan dari HP Offline</span>
+                </h3>
+                <button @click="showImportModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed">
+                Jika HP offline tidak satu jaringan dengan laptop atau link online sedang tidak aktif, Anda bisa mengimpor transaksi langsung menggunakan <strong>file cadangan (.json)</strong> atau <strong>menempelkan kode transaksi</strong> yang dikirim dari kasir HP via WhatsApp.
+            </p>
+
+            <!-- Pilihan 1: Unggah File JSON -->
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                <label class="block text-xs font-bold text-slate-700">Pilihan A: Pilih File Cadangan (.JSON) dari HP</label>
+                <input type="file" accept=".json" @change="handleFileUpload($event)"
+                       class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-teal-600 file:text-white hover:file:bg-teal-700 cursor-pointer">
+            </div>
+
+            <!-- Pilihan 2: Tempel Teks JSON -->
+            <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-slate-700">Pilihan B: Atau Tempel Kode Teks Transaksi:</label>
+                <textarea x-model="importJsonText" rows="4" placeholder='Tempel kode transaksi dari WhatsApp di sini (contoh: {"sales": [...]})'
+                          class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-teal-500"></textarea>
+            </div>
+
+            <div class="flex items-center space-x-2 pt-2">
+                <button type="button" @click="processImportFromHp()" :disabled="!importJsonText || isImporting"
+                        class="flex-1 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs flex items-center justify-center space-x-2 shadow-lg shadow-teal-600/20 disabled:opacity-50 transition-all">
+                    <i class="fa-solid fa-check-double" :class="isImporting ? 'animate-spin' : ''"></i>
+                    <span>Proses Masukkan ke Pembukuan Toko</span>
+                </button>
+                <button type="button" @click="showImportModal = false" class="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs">
+                    Batal
+                </button>
+            </div>
         </div>
     </div>
 
@@ -520,6 +565,9 @@ function posEnterpriseApp() {
         isOnline: navigator.onLine,
         offlineQueue: [],
         isSyncing: false,
+        showImportModal: false,
+        importJsonText: '',
+        isImporting: false,
 
         init() {
             // Load & save offline catalog to HP/laptop local storage
@@ -868,6 +916,50 @@ function posEnterpriseApp() {
                 }
             } finally {
                 this.isSyncing = false;
+            }
+        },
+
+        handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.importJsonText = e.target.result;
+            };
+            reader.readAsText(file);
+        },
+
+        async processImportFromHp() {
+            if (!this.importJsonText) return;
+            this.isImporting = true;
+            try {
+                let parsed = JSON.parse(this.importJsonText);
+                let salesPayload = parsed.sales ? parsed.sales : (Array.isArray(parsed) ? parsed : [parsed]);
+
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+                const response = await fetch("{{ route('pos.sync_offline') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ sales: salesPayload })
+                });
+
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    alert('🎉 Alhamdulillah! Berhasil mengimpor ' + data.synced_count + ' transaksi dari HP ke pembukuan utama toko.');
+                    this.showImportModal = false;
+                    this.importJsonText = '';
+                    window.location.reload();
+                } else {
+                    alert('Gagal impor: ' + (data.message || 'Format data tidak sesuai'));
+                }
+            } catch(e) {
+                alert('Format kode tidak valid atau terjadi kesalahan: ' + e.message);
+            } finally {
+                this.isImporting = false;
             }
         },
 
