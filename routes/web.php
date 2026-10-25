@@ -20,6 +20,9 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 });
 
+// Point of Sale Sync Offline API (Bisa dipanggil oleh HP offline saat terhubung)
+Route::post('/pos/sync-offline', [PosController::class, 'syncOfflineSales'])->name('pos.sync_offline');
+
 // Authenticated Application Routes
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -30,7 +33,6 @@ Route::middleware('auth')->group(function () {
     // Point of Sale (Kasir)
     Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
     Route::post('/pos/checkout', [PosController::class, 'checkout'])->name('pos.checkout');
-    Route::post('/pos/sync-offline', [PosController::class, 'syncOfflineSales'])->name('pos.sync_offline');
     Route::get('/pos/receipt/{sale}', [PosController::class, 'receipt'])->name('pos.receipt');
 
     // Sales History

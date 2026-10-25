@@ -1,9 +1,10 @@
-// Warung Aboen Enterprise PWA Service Worker v2.0
-const CACHE_NAME = 'warung-aboen-v2';
+// Warung Aboen Enterprise PWA Service Worker v3.0
+const CACHE_NAME = 'warung-aboen-v3';
 
 const PRECACHE_ASSETS = [
   '/',
   '/pos',
+  '/kasir-hp.html',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
@@ -11,7 +12,8 @@ const PRECACHE_ASSETS = [
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
   'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js',
-  'https://cdn.jsdelivr.net/npm/chart.js'
+  'https://cdn.jsdelivr.net/npm/chart.js',
+  'https://unpkg.com/html5-qrcode'
 ];
 
 // Install: Pre-cache core assets
@@ -97,8 +99,9 @@ self.addEventListener('fetch', (event) => {
               <div class="card">
                 <div style="font-size: 48px;">🏪</div>
                 <h2>Warung Aboen Offline</h2>
-                <p>Server utama sedang tidak terhubung atau laptop belum menyala. Halaman kasir offline tersimpan dapat dibuka di bawah ini:</p>
-                <a href="/pos" class="btn">Buka Kasir Offline</a>
+                <p>Laptop sedang tidak terhubung atau dimatikan. Anda tetap bisa berjualan dan mencatat transaksi seharian penuh menggunakan Kasir Mandiri HP di bawah ini:</p>
+                <a href="/kasir-hp.html" class="btn" style="background:#059669;display:block;margin-bottom:10px;">Buka Kasir Offline HP (Seharian Full)</a>
+                <a href="/pos" class="btn" style="background:#334155;font-size:12px;">Coba Buka POS Reguler</a>
               </div>
             </body>
             </html>`,

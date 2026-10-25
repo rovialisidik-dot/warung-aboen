@@ -24,6 +24,13 @@
   ],
   "shortcuts": [
     {
+      "name": "Kasir Offline HP (Seharian Full)",
+      "short_name": "Kasir HP",
+      "description": "Buka Terminal Kasir Offline Mandiri Tanpa Laptop",
+      "url": "/kasir-hp.html",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
       "name": "Kasir (POS)",
       "short_name": "Kasir",
       "description": "Buka Terminal Kasir",

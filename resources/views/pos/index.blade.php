@@ -26,6 +26,12 @@
         </div>
 
         <div class="flex items-center space-x-2">
+            <a href="/kasir-hp.html" target="_blank"
+               class="px-2.5 py-1 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold border border-emerald-300 flex items-center space-x-1.5 transition-all text-xs"
+               title="Buka Kasir Offline HP Standalone tanpa tergantung koneksi laptop">
+                <i class="fa-solid fa-mobile-screen-button"></i>
+                <span>Buka Kasir HP Offline</span>
+            </a>
             <template x-if="offlineQueue.length > 0">
                 <button type="button" @click="syncOfflineQueue()" :disabled="isSyncing"
                         class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold shadow-sm flex items-center space-x-1.5 transition-all text-xs">

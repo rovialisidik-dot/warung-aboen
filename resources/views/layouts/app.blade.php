@@ -176,7 +176,7 @@
                 </div>
 
                 <!-- Fast Action: Point of Sale Terminal Button -->
-                <div class="p-3.5">
+                <div class="p-3.5 pb-2">
                     <a href="{{ route('pos.index') }}" 
                        class="flex items-center justify-between w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0 group">
                         <span class="flex items-center space-x-2.5">
@@ -184,6 +184,18 @@
                             <span class="tracking-wide">KASIR (POS)</span>
                         </span>
                         <span class="px-1.5 py-0.5 rounded bg-white/20 text-[10px] font-mono uppercase">F9</span>
+                    </a>
+                </div>
+
+                <!-- Kasir Offline Mandiri HP (Tanpa Perlu Laptop) -->
+                <div class="px-3.5 pb-2">
+                    <a href="/kasir-hp.html" target="_blank"
+                       class="flex items-center justify-between w-full py-2.5 px-3 rounded-xl bg-slate-900 border border-emerald-500/40 hover:border-emerald-400 hover:bg-slate-800 text-emerald-300 font-bold text-xs shadow-sm transition-all group">
+                        <span class="flex items-center space-x-2.5">
+                            <i class="fa-solid fa-mobile-screen-button text-sm text-emerald-400 group-hover:scale-110 transition-transform"></i>
+                            <span>Kasir Mandiri HP</span>
+                        </span>
+                        <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-[9px] text-emerald-300 font-bold uppercase tracking-wider">Offline</span>
                     </a>
                 </div>
 
@@ -389,6 +401,15 @@
                         </div>
                     </div>
                     @endif
+
+                    <!-- Kasir Offline HP Badge/Button -->
+                    <a href="/kasir-hp.html" target="_blank"
+                       class="flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-xl text-xs font-bold transition-all shadow-xs"
+                       title="Buka Kasir Offline HP - Bisa dipakai seharian tanpa buka laptop">
+                        <i class="fa-solid fa-mobile-screen text-emerald-600"></i>
+                        <span class="hidden sm:inline">Kasir HP Offline</span>
+                        <span class="sm:hidden">Offline HP</span>
+                    </a>
 
                     <!-- Mobile POS shortcut -->
                     <a href="{{ route('pos.index') }}" class="sm:hidden px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm">
