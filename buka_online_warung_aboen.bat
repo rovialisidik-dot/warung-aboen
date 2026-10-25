@@ -14,7 +14,7 @@ echo 1. Memeriksa Database MySQL...
 tasklist /FI "IMAGENAME eq mysqld.exe" 2>NUL | find /I /N "mysqld.exe">NUL
 if "%ERRORLEVEL%"=="1" (
     echo    Mengaktifkan MySQL di latar belakang...
-    start "" /B "C:\laragon\bin\mysql\mysql-8.0.30-winx64\bin\mysqld.exe" --defaults-file="C:\laragon\bin\mysql\mysql-8.0.30-winx64\my.ini" --console
+    powershell -WindowStyle Hidden -Command "Start-Process -FilePath 'C:\laragon\bin\mysql\mysql-8.0.30-winx64\bin\mysqld.exe' -ArgumentList '--defaults-file=C:\laragon\bin\mysql\mysql-8.0.30-winx64\my.ini --console' -WindowStyle Hidden"
     timeout /t 3 /nobreak >nul
 ) else (
     echo    [OK] MySQL Database aktif.
@@ -24,7 +24,7 @@ echo 2. Memeriksa Server Aplikasi (Laravel)...
 tasklist /FI "IMAGENAME eq php.exe" 2>NUL | find /I /N "php.exe">NUL
 if "%ERRORLEVEL%"=="1" (
     echo    Mengaktifkan Server Laravel di latar belakang...
-    start "" /B php artisan serve --host=0.0.0.0 --port=8000
+    powershell -WindowStyle Hidden -Command "Start-Process -FilePath 'C:\laragon\bin\php\php-8.1.10-Win32-vs16-x64\php.exe' -ArgumentList 'artisan serve --host=0.0.0.0 --port=8000' -WorkingDirectory '%~dp0' -WindowStyle Hidden"
     timeout /t 3 /nobreak >nul
 ) else (
     echo    [OK] Server Laravel aktif.
