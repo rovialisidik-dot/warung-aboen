@@ -17,6 +17,16 @@ services:
       - key: RUN_MIGRATIONS
         value: "true"
       - key: DB_CONNECTION
-        value: sqlite
+        value: pgsql
+      - key: DB_HOST
+        value: db.mtyqxseosrxlwrbhleno.supabase.co
+      - key: DB_PORT
+        value: "5432"
       - key: DB_DATABASE
-        value: /var/www/html/database/database.sqlite
+        value: postgres
+      - key: DB_USERNAME
+        value: postgres
+      - key: DB_PASSWORD
+        value: "Tasik1234@7x"
+      - key: DB_SSLMODE
+        value: require
