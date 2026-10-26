@@ -13,13 +13,15 @@ RUN apk update && apk add --no-cache \
     unzip \
     git \
     oniguruma-dev \
-    icu-dev
+    icu-dev \
+    postgresql-dev
 
 # Configure and install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
         pdo_mysql \
         pdo_sqlite \
+        pdo_pgsql \
         mbstring \
         zip \
         gd \
