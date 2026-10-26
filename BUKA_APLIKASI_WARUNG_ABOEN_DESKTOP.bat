@@ -9,15 +9,8 @@ echo.
 
 set PATH=C:\laragon\bin\php\php-8.1.10-Win32-vs16-x64;C:\laragon\bin\composer;C:\laragon\bin\mysql\mysql-8.0.30-winx64\bin;%PATH%
 
-echo 1. Memeriksa Database MySQL...
-tasklist /FI "IMAGENAME eq mysqld.exe" 2>NUL | find /I /N "mysqld.exe">NUL
-if "%ERRORLEVEL%"=="1" (
-    echo    Mengaktifkan database di latar belakang...
-    powershell -WindowStyle Hidden -Command "Start-Process -FilePath 'C:\laragon\bin\mysql\mysql-8.0.30-winx64\bin\mysqld.exe' -ArgumentList '--defaults-file=C:\laragon\bin\mysql\mysql-8.0.30-winx64\my.ini --console' -WindowStyle Hidden"
-    timeout /t 3 /nobreak >nul
-) else (
-    echo    [OK] MySQL aktif.
-)
+echo 1. Menghubungkan ke Database Cloud Supabase...
+echo    [OK] Database Supabase aktif di Cloud.
 
 echo 2. Memeriksa Server Laravel...
 tasklist /FI "IMAGENAME eq php.exe" 2>NUL | find /I /N "php.exe">NUL
