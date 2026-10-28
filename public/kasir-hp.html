@@ -778,9 +778,14 @@
                 <h2 class="text-sm font-black" style="color:var(--slate-900);">Riwayat Penjualan Offline</h2>
                 <p class="text-xs" style="color:var(--slate-500);">Tersimpan aman di memori HP Anda</p>
             </div>
-            <button type="button" class="btn-header-sync" style="background:var(--brand-600);" onclick="App.openSyncModal()">
-                <span>Kirim ke Laptop</span>
-            </button>
+            <div style="display:flex; gap:6px;">
+                <button type="button" class="btn-header-sync" style="background:#be123c;" onclick="App.clearLocalSalesHistory()">
+                    <span>🗑️ Kosongkan (0)</span>
+                </button>
+                <button type="button" class="btn-header-sync" style="background:var(--brand-600);" onclick="App.openSyncModal()">
+                    <span>Kirim ke Laptop</span>
+                </button>
+            </div>
         </div>
 
         <div id="history-items-list">
@@ -867,7 +872,7 @@
                     <label class="text-xs font-bold" style="color:var(--slate-600);">Alamat Laptop / Link Online:</label>
                     <input type="text" id="sync-server-url" class="form-input font-mono" style="font-size:11px;" value="">
                     <div style="display:flex; gap:4px; margin-top:4px;">
-                        <button type="button" class="btn-quick-cash" onclick="document.getElementById('sync-server-url').value = 'http://192.168.1.90:8000'">Wi-Fi Toko (192.168.1.90)</button>
+                        <button type="button" class="btn-quick-cash" onclick="document.getElementById('sync-server-url').value = 'http://192.168.1.119:8000'">Wi-Fi (192.168.1.119)</button>
                         <button type="button" class="btn-quick-cash" onclick="document.getElementById('sync-server-url').value = window.location.origin">Asal Web</button>
                     </div>
                 </div>
@@ -888,6 +893,10 @@
 
                 <button type="button" class="btn-block-action btn-secondary" onclick="App.exportDataExcel()">
                     <span>📊 Unduh Laporan CSV / Excel</span>
+                </button>
+
+                <button type="button" class="btn-block-action" style="margin-top:6px; background:#fff1f2; color:#be123c; border:1px solid #fecdd3;" onclick="App.clearLocalSalesHistory()">
+                    <span>🗑️ Kosongkan Riwayat Transaksi di HP (Mulai 0)</span>
                 </button>
             </div>
 
@@ -1589,7 +1598,7 @@
                         alert('Server merespons: ' + (data.message || 'Gagal sinkron'));
                     }
                 } catch(e) {
-                    alert('Tidak dapat terhubung ke server: ' + e.message + '\nPastikan laptop menyala dan alamat link/Wi-Fi sudah benar.');
+                    alert('ℹ️ Laptop Anda saat ini sedang MATI atau belum terhubung.\n\n✅ JANGAN KHAWATIR: Seluruh transaksi jualan di HP ini tetap AMAN tersimpan di memori HP.\nAnda bisa terus berjualan seharian penuh di HP tanpa gangguan.\n\nNanti saat toko tutup dan laptop dinyalakan kembali, silakan buka menu ini lagi dan klik "Kirim ke Laptop".');
                 } finally {
                     btn.disabled = false;
                     btn.querySelector('span').textContent = 'Kirim ke Laptop Sekarang (1-Klik)';
@@ -1617,7 +1626,7 @@
                         if (!silent) alert('Gagal memuat barang dari laptop.');
                     }
                 } catch(e) {
-                    if (!silent) alert('Tidak dapat terhubung ke laptop: ' + e.message);
+                    if (!silent) alert('ℹ️ Laptop sedang mati / belum terhubung.\nData 23 barang sembako di HP tetap aktif dan bisa dipakai jualan.');
                 }
             },
 
@@ -1627,6 +1636,26 @@
                     this.saveProductsLocally();
                     this.renderCatalog();
                     alert('Daftar barang telah direset ke 23 sembako awal.');
+                }
+            },
+
+            clearLocalSalesHistory() {
+                if (this.state.offlineSales.length === 0) {
+                    alert('Riwayat transaksi di HP sudah bersih (0 transaksi).');
+                    return;
+                }
+                if (confirm('Apakah Anda yakin ingin MENGOSONGKAN seluruh ' + this.state.offlineSales.length + ' riwayat transaksi di HP ini agar mulai dari 0?\n\n(Catatan: Data barang dan stok TIDAK akan terhapus).')) {
+                    this.state.offlineSales = [];
+                    this.saveSalesLocally();
+                    this.renderHistory();
+                    this.updateSyncBadge();
+                    if (document.getElementById('sync-modal-count')) {
+                        document.getElementById('sync-modal-count').textContent = '0';
+                    }
+                    if (document.getElementById('sync-upload-count-text')) {
+                        document.getElementById('sync-upload-count-text').textContent = '0 transaksi';
+                    }
+                    alert('✅ Berhasil! Semua riwayat transaksi di HP ini telah dikosongkan (0). Anda siap berjualan dari awal.');
                 }
             },
 
