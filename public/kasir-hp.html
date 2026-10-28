@@ -640,6 +640,9 @@
             </div>
 
             <div class="header-actions">
+                <button type="button" class="btn-header-icon" title="Cek Pembaruan Barang dari Laptop" onclick="App.checkProductUpdates(false)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+                </button>
                 <button type="button" class="btn-header-sync" onclick="App.openSyncModal()">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><path d="m12 13 3-3 3 3"/><path d="M15 10v7"/></svg>
                     <span>Nota: <strong id="header-saved-count">0</strong></span>
@@ -670,6 +673,17 @@
             <!-- Rendered by JS -->
         </div>
     </header>
+
+    <!-- BANNER NOTIFIKASI UPDATE DARI LAPTOP -->
+    <div id="product-update-banner" class="hidden" style="background:#eff6ff; border-bottom:1px solid #bfdbfe; padding:8px 12px; font-size:11px; display:flex; align-items:center; justify-content:space-between; color:#1e40af; position:sticky; top:130px; z-index:40;">
+        <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:14px;">✨</span>
+            <span id="update-banner-text">Ada pembaruan data barang di laptop!</span>
+        </div>
+        <button type="button" onclick="App.applyProductUpdates()" style="background:#2563eb; color:white; border:none; padding:4px 9px; border-radius:6px; font-weight:700; font-size:10px; cursor:pointer;">
+            Perbarui Sekarang
+        </button>
+    </div>
 
     <!-- TAB 1: PRODUCT CATALOG -->
     <main id="tab-catalog" class="catalog-container">
@@ -1054,6 +1068,10 @@
                 if ('serviceWorker' in navigator) {
                     navigator.serviceWorker.register('/sw.js').catch(() => {});
                 }
+
+                // 6. Otomatis cek apakah ada pembaruan barang dari laptop
+                setTimeout(() => this.checkProductUpdates(true), 1500);
+                window.addEventListener('online', () => this.checkProductUpdates(true));
             },
 
             saveProductsLocally() {
@@ -1605,29 +1623,86 @@
                 }
             },
 
-            async refreshCatalogFromServer(silent = false) {
+            async checkProductUpdates(silent = true) {
                 const serverInput = document.getElementById('sync-server-url').value.trim() || window.location.origin;
                 const endpoint = serverInput.replace(/\/+$/, '') + '/pos/catalog-json';
 
                 try {
                     const res = await fetch(endpoint, {
                         method: 'GET',
-                        headers: { 'Accept': 'application/json' }
+                        headers: { 'Accept': 'application/json' },
+                        cache: 'no-cache'
                     });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
                     const data = await res.json();
-                    if (res.ok && data.success && data.products) {
-                        this.state.products = data.products;
-                        this.saveProductsLocally();
-                        this.renderCatalog();
+                    if (!data.success || !data.products) throw new Error('Data tidak valid');
+
+                    const serverProducts = data.products;
+                    const localProducts = this.state.products || [];
+
+                    let newItems = 0;
+                    let priceChanges = 0;
+                    let stockChanges = 0;
+
+                    serverProducts.forEach(sp => {
+                        const lp = localProducts.find(p => p.id === sp.id || (p.barcode && p.barcode === sp.barcode));
+                        if (!lp) {
+                            newItems++;
+                        } else {
+                            if (Number(lp.price) !== Number(sp.price)) priceChanges++;
+                            if (Number(lp.stock) !== Number(sp.stock)) stockChanges++;
+                        }
+                    });
+
+                    const hasChanges = (newItems > 0 || priceChanges > 0 || stockChanges > 0 || serverProducts.length !== localProducts.length);
+
+                    if (hasChanges) {
+                        this.pendingServerProducts = serverProducts;
+                        const banner = document.getElementById('product-update-banner');
+                        const bannerText = document.getElementById('update-banner-text');
+                        if (banner && bannerText) {
+                            let parts = [];
+                            if (newItems > 0) parts.push(newItems + ' barang baru');
+                            if (priceChanges > 0) parts.push(priceChanges + ' harga berubah');
+                            if (stockChanges > 0) parts.push(stockChanges + ' stok berubah');
+                            if (parts.length === 0) parts.push('data barang diperbarui');
+                            bannerText.textContent = 'Ada pembaruan di laptop: ' + parts.join(', ');
+                            banner.classList.remove('hidden');
+                        }
+
                         if (!silent) {
-                            alert('✅ Berhasil! ' + data.products.length + ' data barang & sisa stok terkini berhasil diperbarui dari laptop.');
+                            this.applyProductUpdates();
                         }
                     } else {
-                        if (!silent) alert('Gagal memuat barang dari laptop.');
+                        const banner = document.getElementById('product-update-banner');
+                        if (banner) banner.classList.add('hidden');
+                        if (!silent) {
+                            alert('✅ Data barang di HP sudah yang paling baru dan sama persis dengan laptop (' + serverProducts.length + ' barang).');
+                        }
                     }
                 } catch(e) {
-                    if (!silent) alert('ℹ️ Laptop sedang mati / belum terhubung.\nData 23 barang sembako di HP tetap aktif dan bisa dipakai jualan.');
+                    if (!silent) {
+                        alert('ℹ️ Laptop sedang MATI atau belum terhubung.\nData barang di HP saat ini tetap bisa dipakai jualan normal.');
+                    }
                 }
+            },
+
+            applyProductUpdates() {
+                if (!this.pendingServerProducts) {
+                    this.refreshCatalogFromServer(false);
+                    return;
+                }
+                this.state.products = this.pendingServerProducts;
+                this.pendingServerProducts = null;
+                this.saveProductsLocally();
+                this.renderCatalog();
+                const banner = document.getElementById('product-update-banner');
+                if (banner) banner.classList.add('hidden');
+                alert('🎉 Alhamdulillah! ' + this.state.products.length + ' data barang di HP berhasil diperbarui dari laptop.');
+            },
+
+            async refreshCatalogFromServer(silent = false) {
+                this.checkProductUpdates(silent);
             },
 
             resetToDefaultProducts() {
